@@ -23,8 +23,10 @@
 		"thread-safty",
 		"multithreading",
 		"globalstorage",
-		"sharing concurrency",
-		"php"
+		"php",
+		"pthreads",
+		"sharing",
+		"concurrency"
 	],
 	"authors" : [{
 			"name" : "Johann Zelger",
