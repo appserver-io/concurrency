@@ -1,0 +1,42 @@
+{
+	"name" : "appserver-io/concurrency",
+	"description" : "It introduces abstract services and objects that provides easy handling for thread-safety, concurrency and sharing.",
+	"homepage" : "https://github.com/appserver-io/concurrency",
+	"license" : "OSL-3.0",
+	"require" : {
+		"php" : ">=5.4.0"
+	},
+	"require-dev" : {
+		"appserver-io/build" : "~1.0"
+	},
+	"config" : {
+		"github-oauth" : {
+			"github.com" : "604a3b5943228e434a5b52c2ba3cf72286d30db9"
+		}
+	},
+	"support" : {
+		"email" : "jz@appserver.io",
+		"issues" : "https://github.com/appserver-io/concurrency/issues",
+		"source" : "https://github.com/appserver-io/concurrency"
+	},
+	"keywords" : [
+		"thread-safty multithreading globalstorage sharing concurrency php"
+	],
+	"authors" : [{
+			"name" : "Johann Zelger",
+			"email" : "jz@appserver.io",
+			"homepage" : "https://github.com/appserver-io/concurrency",
+			"role" : "Developer"
+		}
+	],
+	"autoload" : {
+		"psr-4" : {
+			"AppserverIo\\Concurrency\\" : "src/"
+		}
+	},
+	"autoload-dev" : {
+		"psr-4" : {
+			"AppserverIo\\Concurrency\\" : "tests/"
+		}
+	}
+}
