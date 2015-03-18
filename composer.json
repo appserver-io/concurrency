@@ -20,7 +20,11 @@
 		"source" : "https://github.com/appserver-io/concurrency"
 	},
 	"keywords" : [
-		"thread-safty multithreading globalstorage sharing concurrency php"
+		"thread-safty",
+		"multithreading",
+		"globalstorage",
+		"sharing concurrency",
+		"php"
 	],
 	"authors" : [{
 			"name" : "Johann Zelger",
