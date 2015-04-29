@@ -255,9 +255,14 @@ class ExecutorService extends \Thread
                 usleep(100);
             }
         }
-        
-        $closure = $args[0];
-        if (is_callable($closure)) {
+
+        // init closure var
+        $closure = null;
+        // check if first argument is a closure
+        if (isset($args[0]) && is_callable($args[0])) {
+            // get closure definition
+            $closure = $args[0];
+            // clear args array for closure execution on entity
             $args = array();
         }
         
@@ -469,7 +474,7 @@ class ExecutorService extends \Thread
                     // delegate all other commands to entity itself by default
                     default:
                         // try to execute given command with arguments
-                        $this->return = &call_user_func_array(array(&$entityInstance, $this->cmd), $this->args);
+                        $this->return = call_user_func_array(array(&$entityInstance, $this->cmd), $this->args);
                         
                         // check if promises are given
                         if ($this->callback) {
