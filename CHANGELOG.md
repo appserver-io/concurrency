@@ -1,3 +1,13 @@
+# Version 0.1.3
+
+## Bugfixes
+
+* None
+
+## Features
+
+* Added autoloading functionality
+
 # Version 0.1.2
 
 ## Bugfixes
