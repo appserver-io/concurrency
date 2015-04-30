@@ -62,21 +62,26 @@ class ExecutorService extends \Thread
     const EXECUTE_CMD_ENTITY_INVOKE = '__invoke';
     const EXECUTE_CMD_ENTITY_RESET = '__reset';
     const EXECUTE_CMD_SHUTDOWN = '__shutdown';
+
     
     /**
      * Contructor
      *
      * @param string $entityType The entity type class to use as entity object
+     * @param string $autoloader The path to the autoloaders class to require
      * @param string $startFlags The start flags used for starting threads
      */
-    public function __construct($entityType, $startFlags = null)
+    public function __construct($entityType, $autoloader = null, $startFlags = null)
     {
         // init properties
         $this->__callbackAllowed = false;
         $this->__entityType = $entityType;
+        $this->__autoloader = $autoloader;
+        
         // init entity
         $this->__initEntityAnnotations($entityType);
         $this->__entityInstance = new $entityType();
+        
         // init start flags
         if (is_null($startFlags)) {
             $startFlags = PTHREADS_INHERIT_ALL | PTHREADS_ALLOW_GLOBALS;
@@ -115,17 +120,18 @@ class ExecutorService extends \Thread
      * Initialises the global storage.
      * This fuction should be called on global scope.
      *
+     * @param string $autoloader The path to the autoloaders class to require
      * @param string $mainEntity The entity to use for the main instance
      *
      * @static
      * @return void
      */
-    public static function __init($mainEntity = '\stdClass')
+    public static function __init($autoloader = null, $mainEntity = '\stdClass')
     {
         $globalVarName = self::__getGlobalVarName();
         global $$globalVarName;
         if (is_null($$globalVarName)) {
-            return $$globalVarName = new self($mainEntity);
+            return $$globalVarName = new self($mainEntity, $autoloader);
         }
     }
     
@@ -176,12 +182,16 @@ class ExecutorService extends \Thread
      * @return ExecutorService
      * @throws \Exception
      */
-    public static function __newFromEntity($entityType, $alias = null)
+    public static function __newFromEntity($entityType, $alias = null, $autoloader = null)
     {
         // get own instance
         $self = self::__getInstance();
         // init entity key
         $entityKey = self::__getEntityKey($entityType);
+        // init autoloader and set default if nothing was given
+        if (is_null($autoloader)) {
+            $autoloader = $self->__autoloader;
+        }
         
         // check alias functionality
         if ($alias) {
@@ -198,7 +208,7 @@ class ExecutorService extends \Thread
         }
         
         // create execution service instance with entity.
-        $newInstanceFromEntity = new self($entityType);
+        $newInstanceFromEntity = new self($entityType, $autoloader);
         
         // set ref to local storage
         $self["{$entityKey}"] = $newInstanceFromEntity;
@@ -404,7 +414,10 @@ class ExecutorService extends \Thread
      */
     public function run()
     {
-        // todo: register autoloader here
+        // register autoloader if exists
+        if (!is_null($this->__autoloader)) {
+            require $this->__autoloader;
+        }
         
         // set initial param values
         $this->return = null;
