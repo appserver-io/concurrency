@@ -1,3 +1,13 @@
+# Version 0.1.4
+
+## Bugfixes
+
+* Fixed exception for `null` given as executing cmd.
+
+## Features
+
+* None
+
 # Version 0.1.3
 
 ## Bugfixes
