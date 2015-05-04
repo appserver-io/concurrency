@@ -457,7 +457,7 @@ class ExecutorService extends \Thread
                 switch ($this->cmd) {
                     // in case of invalid type
                     case null:
-                        throw new \Exception("No valid command '%s' sent.", var_export($this->cmd, true));
+                        throw new \Exception(sprintf("No valid command '%s' sent.", $this->cmd));
                         break;
                     
                     // in case of returning entity itself
