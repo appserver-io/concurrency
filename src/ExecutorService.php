@@ -25,7 +25,9 @@ namespace AppserverIo\Concurrency;
 /**
  * Class ExecutorService
  *
- * An executor service that can be used to handle single object instance, asynchronous method calls etc...
+ * An executor service that can be used to handle plain php objects as persistent
+ * so called real singleton objects with asynchronous and synchronized method calls
+ * via annotations etc...
  *
  * @category  Library
  * @package   Concurrency
