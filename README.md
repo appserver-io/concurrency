@@ -25,7 +25,7 @@ It allows you to hold plain PHP objects persistent as singleton in memory access
 
 #### How it works
 
-If you want to use the concurrency toolkit in your project you have to add it to the composer dependencies and do a `composer update` afterwards.
+If you want to use the concurrency toolkit in your project you have to add it to the composer dependencies `composer.json` and do a `composer update` afterwards.
 
 ```javascript
 {
