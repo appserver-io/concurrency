@@ -195,7 +195,7 @@ array (
 
 The executor service has some internal function as described here:
 
-| Attributes | Description |
+| Method | Description |
 | ---------- | ----------- |
 | `__return` | Returns the plain entity object from executor thread context if its serializable in its actual state |
 | `__invoke(closure)` | Executes the callable in executor thread context. It will provide $self as function argument which references the plain entity object |
