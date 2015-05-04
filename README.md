@@ -198,9 +198,9 @@ The executor service has some internal function as described here:
 | Method | Description |
 | ---------- | ----------- |
 | `__return` | Returns the plain entity object from executor thread context if its serializable in its actual state |
-| `__invoke(closure)` | Executes the callable in executor thread context. It will provide $self as function argument which references the plain entity object |
+| `__invoke(closure)` | Executes the callable in executor thread context. It will provide $self as function argument which references the plain entity object. Example usage: <pre lang="php">$executorServiceEntity->__invoke(function($self) { $self->doSomething() }); </pre> |
 | `__reset()` | Resets the plaing entity object in executor service context
-| `__shutdown` | Shutdown the executor service thread 
+| `__shutdown()` | Shutdown the executor service thread 
 
 ## Issues
 In order to bundle our efforts we would like to collect all issues regarding this package in [the main project repository's issue tracker](https://github.com/appserver-io/appserver/issues).
