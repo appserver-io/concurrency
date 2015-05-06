@@ -7,7 +7,7 @@ use AppserverIo\Concurrency\AppserverIo\Concurrency;
 
 /**
  * Provides the core functionality for executor service instances
- * 
+ *
  * @author Johann Zelger <jz@appserver.io>
  */
 class Core
@@ -68,7 +68,7 @@ class Core
     /**
      * Shutdown the executor service and all its registered entities
      *
-     * @param string $entityKey The entity key to shutdown. If null main shutdown will be triggered
+     * @param string $entityTypeOrAlias The entity type or alias to shutdown. If null main shutdown will be triggered
      *
      * @static
      * @return void
@@ -165,7 +165,7 @@ class Core
      *
      * @static
      * @return GlobalStorage The global storage instance
-     * 
+     *
      * @throws \AppserverIo\Concurrency\ExecutorService\Exception
      */
     public static function getInstance()
@@ -226,9 +226,9 @@ class Core
     /**
      * Initializes all entity method annotations
      *
-     * @param ExecutorService $executorServiceInstance An executor service instance 
+     * @param ExecutorService $executorServiceInstance An executor service instance
      * @param string          $entityClassName         The entity class name to init
-     * 
+     *
      * @static
      * @return array
      */

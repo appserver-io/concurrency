@@ -58,27 +58,18 @@ class ExecutorServiceTest extends \PHPUnit_Framework_TestCase
     }
     
     /**
-     * Test if executor service global initialisation works
+     * Test if entity execution works
      *
      * @return void
      */
-    public function testInit()
+    public function testEntityExecution()
     {
-        $this->assertInstanceOf(
-            '\AppserverIo\Concurrency\ExecutorService',
-            $GLOBALS[ExS\Core::getGlobalVarName()]
-        );
+        $entityType = '\AppserverIo\Concurrency\ExecutorService\Entities\Storage';
+        $testValue = 'testValue';
+        $testKey = 'testKey';
+        $storage = ExS\Core::newFromEntity($entityType, 'storage');
+        $storage->set($testKey, $testValue);
+        $this->assertSame($testValue, $storage->get($testKey));
     }
-    
-    /**
-     * Test if new entity creation works
-     * 
-     * @return void
-     */
-    public function testCreateNewFromEntityAndCheckIfIts()
-    {
-        $storage = ExS\Core::newFromEntity('\AppserverIo\Concurrency\ExecutorService\Entities\Storage');
-        $storage->set('test', 'test');
-        
-    }
+
 }

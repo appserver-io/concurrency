@@ -47,10 +47,8 @@ class CoreTest extends \PHPUnit_Framework_TestCase
         // if this is not happen, the test suite will not exit its process
         // because the executor service thread loop is still running
         if (isset($GLOBALS[ExS\Core::getGlobalVarName()])) {
-            // check if it exists
-            $exS = $GLOBALS[ExS\Core::getGlobalVarName()];
             // shut it down
-            $exS->shutdown();
+            ExS\Core::shutdown();
         }
     }
     
@@ -76,7 +74,6 @@ class CoreTest extends \PHPUnit_Framework_TestCase
         ExS\Core::init();
         $this->assertTrue(isset($GLOBALS[ExS\Core::getGlobalVarName()]));
         $this->assertInstanceOf('AppserverIo\Concurrency\ExecutorService', $GLOBALS[ExS\Core::getGlobalVarName()]);
-        ExS\Core::shutdown();
     }
 
     /**
@@ -116,7 +113,6 @@ class CoreTest extends \PHPUnit_Framework_TestCase
         ExS\Core::init();
         $stdClassExS = ExS\Core::newFromEntity('\stdClass');
         $this->assertInstanceOf('\AppserverIo\Concurrency\ExecutorService', $stdClassExS);
-        ExS\Core::shutdown();
     }
     
     /**
@@ -129,43 +125,36 @@ class CoreTest extends \PHPUnit_Framework_TestCase
         ExS\Core::init();
         $stdClassExS = ExS\Core::newFromEntity('\stdClass', 'entity-01');
         $this->assertInstanceOf('\AppserverIo\Concurrency\ExecutorService', $stdClassExS);
-        ExS\Core::shutdown();
     }
     
     /**
      * Test newFromEntity function with duplicate classname non alias initialised
-     
+     *
+     * @expectedException              \AppserverIo\Concurrency\ExecutorService\Exception
+     * @expectedExceptionMessageRegExp /Entity '\\stdClass' has already been created\./
+     *
      * @return void
      */
     public function testNewFromEntityFunctionWithIdenticalClassNameNonAliasInitialised()
     {
         ExS\Core::init();
-        try {
-            $stdClassExS = ExS\Core::newFromEntity('\stdClass');
-            $stdClassExS = ExS\Core::newFromEntity('\stdClass');
-        } catch (\Exception $e) {
-            $this->assertInstanceOf('\AppserverIo\Concurrency\ExecutorService\Exception', $e);
-            $this->assertSame("Entity '\stdClass' has already been created.", $e->getMessage());
-        }
-        ExS\Core::shutdown();
+        $stdClassExS = ExS\Core::newFromEntity('\stdClass');
+        $stdClassExS = ExS\Core::newFromEntity('\stdClass');
     }
     
     /**
      * Test newFromEntity function with duplicate classname alias initialised
-      
+     *
+     * @expectedException              \AppserverIo\Concurrency\ExecutorService\Exception
+     * @expectedExceptionMessageRegExp /Entity '\\stdClass' with alias 'entity-01' has already been created\./
+     *
      * @return void
      */
     public function testNewFromEntityFunctionWithIdenticalClassNameAliasInitialised()
     {
         ExS\Core::init();
-        try {
-            $stdClassExS = ExS\Core::newFromEntity('\stdClass', 'entity-01');
-            $stdClassExS = ExS\Core::newFromEntity('\stdClass', 'entity-01');
-        } catch (\Exception $e) {
-            $this->assertInstanceOf('\AppserverIo\Concurrency\ExecutorService\Exception', $e);
-            $this->assertSame("Entity '\stdClass' with alias 'entity-01' has already been created.", $e->getMessage());
-        }
-        ExS\Core::shutdown();
+        $stdClassExS = ExS\Core::newFromEntity('\stdClass', 'entity-01');
+        $stdClassExS = ExS\Core::newFromEntity('\stdClass', 'entity-01');
     }
 
     /**
@@ -192,7 +181,6 @@ class CoreTest extends \PHPUnit_Framework_TestCase
         ExS\Core::newFromEntity('\stdClass');
         ExS\Core::shutdown('\stdClass');
         $this->assertTrue(isset($GLOBALS[ExS\Core::getGlobalVarName()]));
-        ExS\Core::shutdown();
     }
     
     /**
@@ -209,7 +197,6 @@ class CoreTest extends \PHPUnit_Framework_TestCase
         for ($i=1; $i<=10; $i++) {
             ExS\Core::shutdown('e-' . $i);
         }
-        ExS\Core::shutdown();
     }
 
     /**
@@ -224,7 +211,7 @@ class CoreTest extends \PHPUnit_Framework_TestCase
     {
         ExS\Core::getInstance();
     }
-    
+
     /**
      * Test getInstance function initialised
      * 
@@ -235,8 +222,44 @@ class CoreTest extends \PHPUnit_Framework_TestCase
         ExS\Core::init();
         $exS = ExS\Core::getInstance();
         $this->assertInstanceOf('\AppserverIo\Concurrency\ExecutorService', $exS);
-        ExS\Core::shutdown();
+    }
+
+    /**
+     * Test if getEntityKey returns correct key
+     * 
+     * @return void
+     */
+    public function testGetEntityKeyFunctionReturnsCorrectKey()
+    {
+        $testKey = 'storage';
+        $this->assertSame(ExS\Core::ENTITY_KEY_PREFIX . $testKey, ExS\Core::getEntityKey($testKey));
+    }
+
+    /**
+     * Test getEntity function when entity was not created before and ExS was initialised
+     *
+     * @expectedException              \AppserverIo\Concurrency\ExecutorService\Exception
+     * @expectedExceptionMessageRegExp /Entity 'storage' does not exist\./
+     *
+     * @return void
+     */
+    public function testGetEntityNotCreatedBeforeInitialised()
+    {
+        ExS\Core::init();
+        $entity = ExS\Core::getEntity('storage');
     }
     
-
+    /**
+     * Test getEntity function when created before and ExS was initialised
+     * 
+     * @return void
+     */
+    public function testGetEntityCreatedBeforeInitialised()
+    {
+        $entityType = '\AppserverIo\Concurrency\ExecutorService\Entities\Storage';
+        ExS\Core::init();
+        ExS\Core::newFromEntity($entityType, 'storage');
+        $exSentity = ExS\Core::getEntity('storage');
+        $this->assertInstanceOf('\AppserverIo\Concurrency\ExecutorService', $exSentity);
+    }
 }

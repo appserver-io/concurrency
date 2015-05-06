@@ -26,7 +26,7 @@ use AppserverIo\Concurrency\ExecutorService\Core;
 
 /**
  * Class Exception
- * 
+ *
  * A base exception for executor service namespace
  *
  * @category  Library

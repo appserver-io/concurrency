@@ -41,6 +41,8 @@ class Factory
     /**
      * Returns or creates an instance of given classname
      *
+     * @param string $className The classname to create an instance of
+     *
      * @return array
      * @Synchronized
      */
