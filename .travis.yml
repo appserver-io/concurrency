@@ -6,7 +6,16 @@ php:
   - 5.6
   
 before_install:
-  - pecl install pthreads-2.0.10
+  - wget https://github.com/appserver-io-php/pthreads/archive/v2.0.10.tar.gz
+  - tar -xvzf v2.0.10.tar.gz
+  - cd pthreads-2.0.10
+  - phpize
+  - ./configure
+  - make
+  - make install
+  - cd ..
+  - rm -rf pthreads-2.0.10
+  - echo "extension = pthreads.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
   - pecl install xdebug
   - pyrus install pear/PHP_CodeSniffer
   - phpenv rehash

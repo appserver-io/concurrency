@@ -150,11 +150,13 @@ require_once(AUTOLOADER);
 require_once('Storage.php');
 require_once('Task.php');
 
+use \AppserverIo\Concurrency\ExecutorService as ExS;
+
 // init executor service
-\AppserverIo\Concurrency\ExecutorService::__init(AUTOLOADER);
+ExS\Core::init(AUTOLOADER);
 
 // create storage instance with alias data
-$data = \AppserverIo\Concurrency\ExecutorService::__newFromEntity('Storage', 'data');
+$data = ExS\Core::newFromEntity('Storage', 'data');
 
 // preinit counter
 $data->set('counter', 0);
@@ -168,8 +170,7 @@ $data->dump();
 echo 'finished' . PHP_EOL;
 
 // shutdown executor service and its entities
-$data->__shutdown();
-\AppserverIo\Concurrency\ExecutorService::__getInstance()->__shutdown();
+ExS\Core::shutdown();
 ```
 
 If you call `main.php` with a thread-safe compiled php version where pthreads ext is installed as

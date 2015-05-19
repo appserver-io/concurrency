@@ -22,6 +22,8 @@
 
 namespace AppserverIo\Concurrency;
 
+use AppserverIo\Concurrency\ExecutorService\Core;
+
 /**
  * Class ExecutorService
  *
@@ -39,32 +41,6 @@ namespace AppserverIo\Concurrency;
  */
 class ExecutorService extends \Thread
 {
-    /**
-     * Defines the entity key prefix for internal key storage
-     *
-     * @var string
-     */
-    const ENTITY_KEY_PREFIX = '__entity/';
-    
-    /**
-     * Defines the execution method types
-     *
-     * @var string
-     */
-    const EXECUTE_METHOD_DEFAULT = '__execute';
-    const EXECUTE_METHOD_ASYNCHRONOUS = '__executeAsynchronous';
-    const EXECUTE_METHOD_SYNCHRONIZED = '__executeSynchronized';
-    
-    /**
-     * Defines internal command for entity and executor service handling
-     *
-     * @var string
-     */
-    const EXECUTE_CMD_ENTITY_RETURN = '__return';
-    const EXECUTE_CMD_ENTITY_INVOKE = '__invoke';
-    const EXECUTE_CMD_ENTITY_RESET = '__reset';
-    const EXECUTE_CMD_SHUTDOWN = '__shutdown';
-
     
     /**
      * Contructor
@@ -81,7 +57,7 @@ class ExecutorService extends \Thread
         $this->__autoloader = $autoloader;
         
         // init entity
-        $this->__initEntityAnnotations($entityType);
+        Core::initEntityAnnotations($this, $entityType);
         $this->__entityInstance = new $entityType();
         
         // init start flags
@@ -92,134 +68,7 @@ class ExecutorService extends \Thread
         // start thread routine
         $this->start($startFlags);
     }
-    
-    /**
-     * Returns the entities key that will be used for storing internal refs of instance
-     *
-     * @param  string $key The key for entity prefix to append
-     * @return string
-     */
-    public static function __getEntityKey($key)
-    {
-        return self::ENTITY_KEY_PREFIX . $key;
-    }
-    
-    
-    /**
-     * Return a valid variable name to be set as global variable
-     * based on own class name with automatic namespace cutoff
-     *
-     * @static
-     * @return string
-     */
-    public static function __getGlobalVarName()
-    {
-        $cn = __CLASS__;
-        return '__' . strtolower(substr($cn, strrpos($cn, '\\')+(int)($cn[0] === '\\')));
-    }
-    
-    /**
-     * Initialises the global storage.
-     * This fuction should be called on global scope.
-     *
-     * @param string $autoloader The path to the autoloaders class to require
-     * @param string $mainEntity The entity to use for the main instance
-     *
-     * @static
-     * @return void
-     */
-    public static function __init($autoloader = null, $mainEntity = '\stdClass')
-    {
-        $globalVarName = self::__getGlobalVarName();
-        global $$globalVarName;
-        if (is_null($$globalVarName)) {
-            return $$globalVarName = new self($mainEntity, $autoloader);
-        }
-    }
-    
-    /**
-     * Returns the instance created in global scope
-     *
-     * @static
-     * @return GlobalStorage The global storage instance
-     */
-    public static function __getInstance()
-    {
-        $globalVarName = self::__getGlobalVarName();
-        global $$globalVarName;
-        if (is_null($$globalVarName)) {
-            throw new \Exception(sprintf("Failed to get instance '$%s'. Please call init() in global scope first and check if PTHREADS_ALLOW_GLOBALS flag is set in specific Thread start calls.", $globalVarName));
-        }
-        return $$globalVarName;
-    }
-    
-    /**
-     * Returns an entity from internal storage
-     *
-     * @param string $entityTypeOrAlias The type or aliase to get
-     *
-     * @throws \Exception
-     * @return ExecutorService
-     */
-    public static function __getEntity($entityTypeOrAlias)
-    {
-        // get own instance
-        $self = self::__getInstance();
-        // init entityKey
-        $entityKey = self::__getEntityKey($entityTypeOrAlias);
-        // check if entity does not exists
-        if (!isset($self["{$entityKey}"])) {
-            throw new \Exception(sprintf("Entity '%s' does not exist.", $entityTypeOrAlias));
-        }
-        // return it
-        return $self["{$entityKey}"];
-    }
-    
-    /**
-     * Creates a new instance of execution service with given entity class and mapped alias
-     *
-     * @param string $entityType The class to make use of execution service as singleton
-     * @param string $alias      The alias to use for store that instance in global storage of execution service
-     * @param string $autoloader The autoloader to use
-     *
-     * @return ExecutorService
-     * @throws \Exception
-     */
-    public static function __newFromEntity($entityType, $alias = null, $autoloader = null)
-    {
-        // get own instance
-        $self = self::__getInstance();
-        // init entity key
-        $entityKey = self::__getEntityKey($entityType);
-        // init autoloader and set default if nothing was given
-        if (is_null($autoloader)) {
-            $autoloader = $self->__autoloader;
-        }
-        
-        // check alias functionality
-        if ($alias) {
-            $entityKey = self::__getEntityKey($alias);
-            // check if alias was registered already
-            if (isset($self["{$entityKey}"])) {
-                throw new \Exception(sprintf("Entity '%s' with alias '%s' has already been created.", $entityType, $alias));
-            }
-        } else {
-            // check if entity was registered already
-            if (isset($self["{$entityKey}"])) {
-                throw new \Exception(sprintf("Entity '%s' has already been created.", $entityType, $alias));
-            }
-        }
-        
-        // create execution service instance with entity.
-        $newInstanceFromEntity = new self($entityType, $autoloader);
-        
-        // set ref to local storage
-        $self["{$entityKey}"] = $newInstanceFromEntity;
-        
-        // return it
-        return $newInstanceFromEntity;
-    }
-    
+
     /**
      * Registeres a callback for asynch methods to be called after execution
      *
@@ -353,7 +202,7 @@ class ExecutorService extends \Thread
         // call execute function to be async
         return $this->__execute($cmd, $args, true);
     }
-    
+
     /**
      * Introduce a magic __call function to delegate all methods to the internal
      * execution functionality. If you hit a Method which is not available in executor
@@ -367,48 +216,14 @@ class ExecutorService extends \Thread
      */
     public function __call($methodname, $args)
     {
-        $executeTypeFunction = self::EXECUTE_METHOD_DEFAULT;
+        $executeTypeFunction = Core::EX_METHOD_DEFAULT;
         // check method execution type from mapper
-        if (isset($this->methodExecutionTypeMapper["::{$methodname}"])) {
-            $executeTypeFunction = $this->methodExecutionTypeMapper["::{$methodname}"];
+        if (isset($this->__methodExecutionTypeMapper["::{$methodname}"])) {
+            $executeTypeFunction = $this->__methodExecutionTypeMapper["::{$methodname}"];
         }
         return $this->$executeTypeFunction($methodname, $args);
     }
 
-    
-    /**
-     * Initializes all entity method annotations
-     *
-     * @param  string $class The class name
-     * @return array
-     */
-    public function __initEntityAnnotations($class)
-    {
-        // get reflection of entity class
-        $reflector = new \ReflectionClass($class);
-        // get all Methods
-        $methods = $reflector->getMethods();
-        // init method exec type mapper array
-        $methodExecutionTypeMapper = array();
-        // iterate all methods
-        foreach ($methods as $method) {
-            // set default method type
-            $methodExecutionTypeMapper["::{$method->getName()}"] =  self::EXECUTE_METHOD_DEFAULT;
-            // get method annotations
-            preg_match_all('#@(.*?)\n#s', $method->getDocComment(), $annotations);
-            // check if asynch annotation
-            if (in_array('Asynchronous', $annotations[1])) {
-                $methodExecutionTypeMapper["::{$method->getName()}"] = self::EXECUTE_METHOD_ASYNCHRONOUS;
-            }
-            // check if synch annotation
-            if (in_array('Synchronized', $annotations[1])) {
-                $methodExecutionTypeMapper["::{$method->getName()}"] = self::EXECUTE_METHOD_SYNCHRONIZED;
-            }
-        }
-        // set mapper array
-        $this->methodExecutionTypeMapper = $methodExecutionTypeMapper;
-    }
-    
     /**
      * The main thread routine function
      *
@@ -432,7 +247,7 @@ class ExecutorService extends \Thread
         $entityInstance = $this->__entityInstance;
         $entityType = $this->__entityType;
         
-        // loop while no shutdown command was sent
+        // loop as long as no shutdown command was sent
         do {
             // synced communication call
             $this->synchronized(
@@ -461,12 +276,12 @@ class ExecutorService extends \Thread
                         break;
                     
                     // in case of returning entity itself
-                    case self::EXECUTE_CMD_ENTITY_RETURN:
+                    case Core::EX_CMD_ENTITY_RETURN:
                         $this->return = $entityInstance;
                         break;
                         
                     // in case of returning entity itself
-                    case self::EXECUTE_CMD_ENTITY_RESET:
+                    case Core::EX_CMD_ENTITY_RESET:
                         unset($entityInstance);
                         $this->__initEntityAnnotations($entityType);
                         $this->__entityInstance = $entityInstance = new $this->__entityType();
@@ -474,7 +289,7 @@ class ExecutorService extends \Thread
                         break;
                         
                     // in case of execute closure internally
-                    case self::EXECUTE_CMD_ENTITY_INVOKE:
+                    case Core::EX_CMD_ENTITY_INVOKE:
                         $callable = $this->closure;
                         if ($callable) {
                             $this->return = $callable($entityInstance);
@@ -483,7 +298,8 @@ class ExecutorService extends \Thread
                         break;
                         
                     // in case of shutdown execution service
-                    case self::EXECUTE_CMD_SHUTDOWN:
+                    case Core::EX_CMD_SHUTDOWN:
+                        // set shutdown flag true to trigger shutdown process
                         $shutdown = true;
                         break;
                         
