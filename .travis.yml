@@ -9,14 +9,15 @@ before_install:
   - pecl install xdebug
   - pyrus install pear/PHP_CodeSniffer
   - phpenv rehash
-  - wget https://github.com/appserver-io-php/pthreads/archive/v1.0.6.tar.gz
-  - tar -xvzf v1.0.6.tar.gz
-  - cd pthreads-1.0.6
+  - wget https://github.com/appserver-io-php/pthreads/archive/v2.0.10.tar.gz
+  - tar -xvzf v2.0.10.tar.gz
+  - cd pthreads-2.0.10
   - phpize
   - ./configure
   - make
   - make install
   - cd ..
+  - rm -rf pthreads-2.0.10
 
 before_script:
   - composer selfupdate
