@@ -71,5 +71,4 @@ class ExecutorServiceTest extends \PHPUnit_Framework_TestCase
         $storage->set($testKey, $testValue);
         $this->assertSame($testValue, $storage->get($testKey));
     }
-
 }
