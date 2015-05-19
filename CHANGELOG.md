@@ -1,3 +1,14 @@
+# Version 0.2.0
+
+## Bugfixes
+
+* None
+
+## Features
+
+* Added tests
+* Separated core functionality from entity executor wrapper
+
 # Version 0.1.4
 
 ## Bugfixes
