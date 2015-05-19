@@ -30,7 +30,7 @@ If you want to use the concurrency toolkit in your project you have to add it to
 ```javascript
 {
     "require": {
-        "appserver-io/concurrency": "~0.1"
+        "appserver-io/concurrency": "~0.2"
     },
 }
 ```
