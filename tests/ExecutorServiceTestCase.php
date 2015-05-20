@@ -1,7 +1,7 @@
 <?php
 
 /**
- * \AppserverIo\Concurrency\ExecutorServiceTest
+ * \AppserverIo\Concurrency\ExecutorServiceTestCase
  *
  * NOTICE OF LICENSE
  *
@@ -22,11 +22,10 @@
 
 namespace AppserverIo\Concurrency;
 
-use AppserverIo\Concurrency\ExecutorService;
 use AppserverIo\Concurrency\ExecutorService as ExS;
 
 /**
- * Tests for executor service
+ * Test Case abstract for executor service
  *
  * @category  Library
  * @package   Concurrency
@@ -36,36 +35,25 @@ use AppserverIo\Concurrency\ExecutorService as ExS;
  * @link      https://github.com/appserver-io/concurrency
  * @link      http://www.appserver.io
  */
-class ExecutorServiceTest extends ExecutorServiceTestCase
+class ExecutorServiceTestCase extends \PHPUnit_Framework_TestCase
 {
     /**
-     * Test if entity execution works
-     *
-     * @return void
+     * (non-PHPdoc)
+     * @see PHPUnit_Framework_TestCase::setUp()
      */
-    public function testEntityExecution()
+    public function setUp()
     {
-        $entityType = '\AppserverIo\Concurrency\ExecutorService\Entities\Storage';
-        $testValue = 'testValue';
-        $testKey = 'testKey';
-        $storage = ExS\Core::newFromEntity($entityType, 'storage');
-        $storage->set($testKey, $testValue);
-        $this->assertSame($testValue, $storage->get($testKey));
+        // init ExecutorService
+        ExS\Core::init();
     }
     
     /**
-     * Test entity execution with circular referencing itself
-     * 
-     * @return void
+     * (non-PHPdoc)
+     * @see PHPUnit_Framework_TestCase::tearDown()
      */
-    public function testEntityExecutionWithCircularReferences()
+    public function tearDown()
     {
-        $entityType = '\stdClass';
-        $stdClass = ExS\Core::newFromEntity($entityType);
-        $stdClass->__invoke(function($self) {
-            $self->self = $self;
-        });
-        $returnedStdClass = $stdClass->__return();
-        $this->assertInstanceOf($entityType, $returnedStdClass);
+        // shutdown ExecutorService
+        ExS\Core::shutdown();
     }
 }
