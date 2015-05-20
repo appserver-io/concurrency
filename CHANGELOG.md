@@ -1,3 +1,15 @@
+# Version 0.2.1
+
+## Bugfixes
+
+* None
+
+## Features
+
+* Added ExecutorServiceTestCase abstract
+* Added Entity NamingDirectory
+* Added Test for NamingDirectory
+
 # Version 0.2.0
 
 ## Bugfixes
