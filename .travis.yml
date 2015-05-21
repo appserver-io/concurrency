@@ -15,12 +15,11 @@ before_install:
   - make install
   - cd ..
   - rm -rf pthreads-2.0.10
-  - echo "extension = pthreads.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
-  - pecl install xdebug
   - pyrus install pear/PHP_CodeSniffer
   - phpenv rehash
 
 before_script:
+  - phpenv config-add travis-php.ini
   - composer selfupdate
 
 script:
