@@ -20,8 +20,6 @@
 
 namespace AppserverIo\Concurrency\ExecutorService\Entities;
 
-use AppserverIo\Concurrency\ExecutorService\Entities\Storage;
-
 /**
  * Naming directory implementation.
  *
@@ -33,7 +31,7 @@ use AppserverIo\Concurrency\ExecutorService\Entities\Storage;
  *
  * @property string $scheme The binding string scheme
  */
-class NamingDirectory extends Storage
+class NamingDirectory
 {
     /**
      * Binds the passed instance with the name to the naming directory.
@@ -43,7 +41,7 @@ class NamingDirectory extends Storage
      * @param array  $args  The array with the arguments
      *
      * @return void
-     * @throws \AppserverIo\Psr\Naming\NamingException Is thrown if the value can't be bound ot the directory
+     * @throws \Exception Is thrown if the value can't be bound ot the directory
      */
     public function bind($name, $value, array $args = array())
     {
@@ -122,10 +120,15 @@ class NamingDirectory extends Storage
      * @param array  $args The arguments to pass to the callback
      *
      * @return mixed The requested value
-     * @throws \AppserverIo\Psr\Naming\NamingException Is thrown if the requested name can't be resolved in the directory
+     * @throws \Exception Is thrown if the requested name can't be resolved in the directory
      */
     public function search($name, array $args = array())
     {
+    
+        // delegate the search request to the parent directory
+        if (strpos($name, sprintf('%s:', $this->getScheme())) === 0 && $this->getParent()) {
+            return $this->findRoot()->search($name, $args);
+        }
     
         // strip off the schema
         $name = str_replace(sprintf('%s:', $this->getScheme()), '', $name);
@@ -149,6 +152,7 @@ class NamingDirectory extends Storage
                     foreach ($args as $arg) {
                         $bindArgs[] = $arg;
                     }
+    
                     // invoke the callback
                     return call_user_func_array($value, $bindArgs);
                 }
@@ -162,20 +166,124 @@ class NamingDirectory extends Storage
                 }
     
                 // if not, simply return the value/object
-                return $value;
+                return clone $value;
             }
     
             // load the next token
             $token = strtok('/');
         }
     
-        // delegate the search request to the parent directory
-        if ($parent = $this->getParent()) {
-            return $parent->search($name, $args);
-        }
-    
         // throw an exception if we can't resolve the name
         throw new \Exception(sprintf('Cant\'t resolve %s in naming directory %s', ltrim($name, '/'), $this->getIdentifier()));
+    }
+    
+    /**
+     * The unique identifier of this directory. That'll be build up
+     * recursive from the scheme and the root directory.
+     *
+     * @return string The unique identifier
+     * @see \AppserverIo\Storage\StorageInterface::getIdentifier()
+     *
+     * @throws \AppserverIo\Psr\Naming\\Exception
+     */
+    public function getIdentifier()
+    {
+    
+        // check if we've a parent directory
+        if ($parent = $this->getParent()) {
+            return $parent->getIdentifier() . $this->getName() . '/';
+        }
+    
+        // if not, we MUST have a scheme, because we're root
+        if ($scheme = $this->getScheme()) {
+            return $scheme . ':' . $this->getName();
+        }
+    
+        // the root node needs a scheme
+        throw new \Exception(sprintf('Missing scheme for naming directory', $this->getName()));
+    }
+    
+    /**
+     * Returns a string presentation of the naming directory tree.
+     *
+     * @return string The naming directory as string
+     */
+    public function __toString()
+    {
+        return PHP_EOL ."{" . $this->findRoot()->renderRecursive() . "}";
+    }
+    
+    /**
+     * Returns the root node of the naming directory tree.
+     *
+     * @return \AppserverIo\Psr\Naming\NamingDirectoryInterface The root node
+     */
+    public function findRoot()
+    {
+    
+        // query whether we've a parent or not
+        if ($parent = $this->getParent()) {
+            return $parent->findRoot();
+        }
+    
+        // return the node itself if we're root
+        return $this;
+    }
+    
+    /**
+     * Appends a string representation to the passed buffer of the passed naming
+     * directory tree.
+     *
+     * @param string $buffer The string to append to
+     *
+     * @return string The buffer append with the string representation
+     */
+    public function renderRecursive(&$buffer = PHP_EOL)
+    {
+    
+        // query whether we've attributes or not
+        if ($attributes = $this->getAttributes()) {
+            // iterate over the attributes
+            foreach ($attributes as $key => $found) {
+                // extract the binded value/args if necessary
+                if (is_array($found)) {
+                    list ($value, $bindArgs) = $found;
+                } else {
+                    $value = $found;
+                }
+    
+                // initialize the strings for node value and type
+                $val = 'n/a';
+                $type = 'unknown';
+    
+                // set value and type strings based on the found value
+                if (is_null($value)) {
+                    $val = 'NULL';
+                } elseif (is_object($value)) {
+                    $type = get_class($value);
+                } elseif (is_callable($value)) {
+                    $type = 'callback';
+                } elseif (is_array($value)) {
+                    $type = 'array';
+                } elseif (is_scalar($value)) {
+                    $type = gettype($value);
+                    $val = $value;
+                } elseif (is_resource($value)) {
+                    $type = 'resource';
+                }
+    
+                // append type and value string representations to the buffer
+                $buffer .= sprintf('    "%s%s" %s => %s', $this->getIdentifier(), $key, $type, $val) . PHP_EOL;
+    
+                // if the value is a naming directory also, append it recursive
+                if ($value instanceof NamingDirectoryInterface) {
+                    $value->renderRecursive($buffer);
+                }
+            }
+        }
+    
+        // return the buffer
+        return $buffer;
     }
 
     /**
@@ -190,6 +298,7 @@ class NamingDirectory extends Storage
         $this->parent = $parent;
         $this->name = $name;
         $this->scheme = 'PHP';
+        $this->data = array();
     }
 
     /**
@@ -201,7 +310,7 @@ class NamingDirectory extends Storage
     {
         return $this->name;
     }
-
+    
     /**
      * Returns the parend directory.
      *
@@ -211,7 +320,7 @@ class NamingDirectory extends Storage
     {
         return $this->parent;
     }
-
+    
     /**
      * Set the scheme, php or http for example
      *
@@ -223,7 +332,7 @@ class NamingDirectory extends Storage
     {
         $this->scheme = $scheme;
     }
-
+    
     /**
      * Returns the scheme.
      *
@@ -231,42 +340,16 @@ class NamingDirectory extends Storage
      */
     public function getScheme()
     {
-
+    
         // if the parent directory has a schema, return this one
         if ($parent = $this->getParent()) {
             return $parent->getScheme();
         }
-
+    
         // return our own schema
         return $this->scheme;
     }
-
-    /**
-     * The unique identifier of this directory. That'll be build up
-     * recursive from the scheme and the root directory.
-     *
-     * @return string The unique identifier
-     * @see \AppserverIo\Storage\StorageInterface::getIdentifier()
-     *
-     * @throws \AppserverIo\Psr\Naming\NamingException
-     */
-    public function getIdentifier()
-    {
-
-        // check if we've a parent directory
-        if ($parent = $this->getParent()) {
-            return $parent->getIdentifier() . '/' . $this->getName();
-        }
-
-        // if not, we MUST have a scheme, because we're root
-        if ($scheme = $this->getScheme()) {
-            return $scheme . ':' . $this->getName();
-        }
-
-        // the root node needs a scheme
-        throw new \Exception(sprintf('Missing scheme for naming directory', $this->getName()));
-    }
-
+    
     /**
      * Returns the value with the passed name from the context.
      *
@@ -277,9 +360,19 @@ class NamingDirectory extends Storage
      */
     public function getAttribute($key)
     {
-        return $this->get($key);
+        return $this->data[$key];
     }
-
+    
+    /**
+     * All values registered in the context.
+     *
+     * @return array The context data
+     */
+    public function getAttributes()
+    {
+        return $this->data;
+    }
+    
     /**
      * Queries if the attribute with the passed key is bound.
      *
@@ -289,9 +382,9 @@ class NamingDirectory extends Storage
      */
     public function hasAttribute($key)
     {
-        return $this->has($key);
+        return isset($this->data[$key]);
     }
-
+    
     /**
      * Sets the passed key/value pair in the directory.
      *
@@ -302,9 +395,13 @@ class NamingDirectory extends Storage
      */
     public function setAttribute($key, $value)
     {
-        $this->set($key, $value);
+    
+        // a bit complicated, but we're in a multithreaded environment
+        $data = $this->data;
+        $data[$key] = $value;
+        $this->data = $data;
     }
-
+    
     /**
      * Returns the keys of the bound attributes.
      *
@@ -312,9 +409,9 @@ class NamingDirectory extends Storage
      */
     public function getAllKeys()
     {
-        return array_keys($this->all());
+        return array_keys($this->getAttributes());
     }
-
+    
     /**
      * Create and return a new naming subdirectory with the attributes
      * of this one.
@@ -326,10 +423,10 @@ class NamingDirectory extends Storage
      */
     public function createSubdirectory($name, array $filter = array())
     {
-
+    
         // create a new subdirectory instance
         $subdirectory = new NamingDirectory($name, $this);
-
+    
         // copy the attributes specified by the filter
         if (sizeof($filter) > 0) {
             foreach ($this->getAllKeys() as $key => $value) {
@@ -340,11 +437,11 @@ class NamingDirectory extends Storage
                 }
             }
         }
-
+    
         // bind it the directory
         $this->bind($name, $subdirectory);
-
+    
         // return the instance
-        return $subdirectory;
+        return clone $subdirectory;
     }
 }

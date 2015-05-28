@@ -277,7 +277,7 @@ class ExecutorService extends \Thread
                     
                     // in case of returning entity itself
                     case Core::EX_CMD_ENTITY_RETURN:
-                        $this->return = $entityInstance;
+                        $this->return = clone $entityInstance;
                         break;
                         
                     // in case of returning entity itself
@@ -292,7 +292,7 @@ class ExecutorService extends \Thread
                     case Core::EX_CMD_ENTITY_INVOKE:
                         $callable = $this->closure;
                         if ($callable) {
-                            $this->return = $callable($entityInstance);
+                            $this->return = $callable($this->__entityInstance);
                         }
                         $this->return = null;
                         break;
