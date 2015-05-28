@@ -60,7 +60,6 @@ class ExecutorServiceTest extends ExecutorServiceTestCase
      */
     public function testEntityExecutionWithCircularReferences()
     {
-        /*
         $entityType = '\stdClass';
         $stdClass = ExS\Core::newFromEntity($entityType);
         $stdClass->__invoke(function($self) {
@@ -68,6 +67,5 @@ class ExecutorServiceTest extends ExecutorServiceTestCase
         });
         $returnedStdClass = $stdClass->__return();
         $this->assertInstanceOf($entityType, $returnedStdClass);
-        */
     }
 }
