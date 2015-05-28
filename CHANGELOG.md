@@ -1,3 +1,13 @@
+# Version 0.2.2
+
+## Bugfixes
+
+* Minor bugfixes regarding circular references when using entities
+
+## Features
+
+* None
+
 # Version 0.2.1
 
 ## Bugfixes
