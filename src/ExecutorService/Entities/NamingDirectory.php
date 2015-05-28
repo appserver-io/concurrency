@@ -41,7 +41,7 @@ class NamingDirectory
      * @param array  $args  The array with the arguments
      *
      * @return void
-     * @throws \AppserverIo\Psr\Naming\\Exception Is thrown if the value can't be bound ot the directory
+     * @throws \Exception Is thrown if the value can't be bound ot the directory
      */
     public function bind($name, $value, array $args = array())
     {
@@ -120,7 +120,7 @@ class NamingDirectory
      * @param array  $args The arguments to pass to the callback
      *
      * @return mixed The requested value
-     * @throws \AppserverIo\Psr\Naming\\Exception Is thrown if the requested name can't be resolved in the directory
+     * @throws \Exception Is thrown if the requested name can't be resolved in the directory
      */
     public function search($name, array $args = array())
     {
