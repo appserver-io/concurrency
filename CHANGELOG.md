@@ -1,3 +1,13 @@
+# Version 0.3.0
+
+## Bugfixes
+
+* None
+
+## Features
+
+* Add @Direct annotation that allows method invocation without locking/blocking functionality
+
 # Version 0.2.2
 
 ## Bugfixes

@@ -25,9 +25,10 @@ class Core
      * @var string
      */
     const EX_METHOD_DEFAULT = '__execute';
+    const EX_METHOD_DIRECT = '__executeDirect';
     const EX_METHOD_ASYNCHRONOUS = '__executeAsynchronous';
     const EX_METHOD_SYNCHRONIZED = '__executeSynchronized';
-    
+
     /**
      * Defines internal commands for entity management
      *
@@ -36,7 +37,7 @@ class Core
     const EX_CMD_ENTITY_RETURN = '__return';
     const EX_CMD_ENTITY_INVOKE = '__invoke';
     const EX_CMD_ENTITY_RESET = '__reset';
-    
+
     /**
      * Defines internal commands for executor service handling
      *
@@ -198,7 +199,7 @@ class Core
         if (is_null($autoloader)) {
             $autoloader = $self->__autoloader;
         }
-        
+
         // check alias functionality
         if (!is_null($alias)) {
             $entityKey = self::getEntityKey($alias);
@@ -212,13 +213,13 @@ class Core
                 throw new ExecutorService\Exception(sprintf("Entity '%s' has already been created.", $entityType, $alias));
             }
         }
-        
+
         // create execution service instance with entity.
         $newInstanceFromEntity = new ExecutorService($entityType, $autoloader);
-        
+
         // set ref to local storage
         $self["{$entityKey}"] = $newInstanceFromEntity;
-        
+
         // return it
         return $newInstanceFromEntity;
     }
@@ -253,6 +254,10 @@ class Core
             // check if synch annotation
             if (in_array('Synchronized', $annotations[1])) {
                 $methodExecutionTypeMapper["::{$method->getName()}"] = self::EX_METHOD_SYNCHRONIZED;
+            }
+            // check if direct annotation
+            if (in_array('Direct', $annotations[1])) {
+                $methodExecutionTypeMapper["::{$method->getName()}"] = self::EX_METHOD_DIRECT;
             }
         }
         // save mapper array to executor service instance

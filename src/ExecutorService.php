@@ -41,7 +41,7 @@ use AppserverIo\Concurrency\ExecutorService\Core;
  */
 class ExecutorService extends \Thread
 {
-    
+
     /**
      * Contructor
      *
@@ -55,16 +55,17 @@ class ExecutorService extends \Thread
         $this->__callbackAllowed = false;
         $this->__entityType = $entityType;
         $this->__autoloader = $autoloader;
-        
+
         // init entity
         Core::initEntityAnnotations($this, $entityType);
         $this->__entityInstance = new $entityType();
-        
+        $this->__serializedEntityInstance = serialize($this->__entityInstance);
+
         // init start flags
         if (is_null($startFlags)) {
             $startFlags = PTHREADS_INHERIT_ALL | PTHREADS_ALLOW_GLOBALS;
         }
-        
+
         // start thread routine
         $this->start($startFlags);
     }
@@ -94,7 +95,7 @@ class ExecutorService extends \Thread
         // return executor service
         return $this;
     }
-    
+
     /**
      * Executes given command with args in a default non locked way
      *
@@ -110,7 +111,7 @@ class ExecutorService extends \Thread
         // check if execution is going on or startup is not ready yet
         if ($this->run !== false) {
             // maybe it make sense to throw an exception in this case...
-            
+
             // wait while execution is running
             while ($this->run !== false) {
                 // sleep a little while waiting loop
@@ -127,7 +128,7 @@ class ExecutorService extends \Thread
             // clear args array for closure execution on entity
             $args = array();
         }
-        
+
         // synced communication call
         $this->synchronized(
             function ($self, $cmd, $args, $closure) {
@@ -145,7 +146,7 @@ class ExecutorService extends \Thread
             $args,
             $closure
         );
-        
+
         // check if function should be called async or not
         if ($async) {
             // do not wait and return executor service for being able to
@@ -153,22 +154,40 @@ class ExecutorService extends \Thread
             $this->__callbackAllowed = true;
             return $this;
         }
-        
+
         // wait while execution is running
         while ($this->run !== false) {
             // sleep a little while waiting loop
             usleep(100);
         }
-        
+
         // check if an exceptions was thrown and throw it again in this context.
         if ($this->exception) {
             throw $this->exception;
         }
-        
+
         // return the return value we got from execution
         return $this->return;
     }
-    
+
+    /**
+     * Executes the given command and arguments directly on the entity without
+     * locking or blocking mechanims.
+     *
+     * This method will be invoked automatically if the entity's method has been
+     * annotated with the @Direct annotation.
+     *
+     * @param string $method The method name to invoke on the entity
+     * @param array  $args   The method's arguments
+     *
+     * @return mixed The method result
+     */
+    public function __executeDirect($method, array $args = array())
+    {
+        // unserialialize the entity and execute the function
+        return call_user_func_array(array(unserialize($this->__serializedEntityInstance), $method), $args);
+    }
+
     /**
      * Executes the given command and arguments in a synchronized way.
      *
@@ -232,26 +251,33 @@ class ExecutorService extends \Thread
      */
     public function run()
     {
+
+        // register a shutdown handler for controlled shutdown
+        register_shutdown_function(array(&$this, 'shutdown'));
+
         // register autoloader if exists
         if (!is_null($this->__autoloader)) {
             require $this->__autoloader;
         }
-        
+
         // set initial param values
         $this->return = null;
         $this->exception = null;
         // set shutdown flag internally so that its only possible change it via shutdown command
         $shutdown = false;
-        
+
         // get entity properties to local var ref
         $entityInstance = $this->__entityInstance;
         $entityType = $this->__entityType;
-        
+
         // loop as long as no shutdown command was sent
         do {
             // synced communication call
             $this->synchronized(
-                function ($self) {
+                function ($self, $instance) {
+                    // write the serialized entity back to the executor service scope
+                    $self->__serializedEntityInstance = serialize($instance);
+
                     // set initial param values
                     $this->cmd = null;
                     $this->args = array();
@@ -263,9 +289,10 @@ class ExecutorService extends \Thread
                     $this->exception = null;
                     $this->return = null;
                 },
-                $this
+                $this,
+                $entityInstance
             );
-            
+
             // try to execute given command
             try {
                 // first check internal commands before delegate commands to entity itself
@@ -274,12 +301,12 @@ class ExecutorService extends \Thread
                     case null:
                         throw new \Exception(sprintf("No valid command '%s' sent.", $this->cmd));
                         break;
-                    
+
                     // in case of returning entity itself
                     case Core::EX_CMD_ENTITY_RETURN:
                         $this->return = clone $entityInstance;
                         break;
-                        
+
                     // in case of returning entity itself
                     case Core::EX_CMD_ENTITY_RESET:
                         unset($entityInstance);
@@ -287,7 +314,7 @@ class ExecutorService extends \Thread
                         $this->__entityInstance = $entityInstance = new $this->__entityType();
                         $this->return = true;
                         break;
-                        
+
                     // in case of execute closure internally
                     case Core::EX_CMD_ENTITY_INVOKE:
                         $callable = $this->closure;
@@ -296,18 +323,18 @@ class ExecutorService extends \Thread
                         }
                         $this->return = null;
                         break;
-                        
+
                     // in case of shutdown execution service
                     case Core::EX_CMD_SHUTDOWN:
                         // set shutdown flag true to trigger shutdown process
                         $shutdown = true;
                         break;
-                        
+
                     // delegate all other commands to entity itself by default
                     default:
                         // try to execute given command with arguments
                         $this->return = call_user_func_array(array(&$entityInstance, $this->cmd), $this->args);
-                        
+
                         // check if promises are given
                         if ($this->callback) {
                             $cb = $this->callback;
@@ -317,14 +344,15 @@ class ExecutorService extends \Thread
                             $this->__callbackAllowed = false;
                         }
                 }
-                
+
             } catch (\Exception $e) {
                 // catch and hold all exceptions throws while processing for further usage
                 $this->exception = $e;
             }
+
             // loop until shutdown
         } while ($shutdown === false);
-        
+
         // init properties before shuting down in synced call
         $this->synchronized(
             function ($self) {
@@ -339,6 +367,26 @@ class ExecutorService extends \Thread
             },
             $this
         );
-        
+    }
+
+    /**
+     * Shutdown handler that checks for fatal/user errors.
+     *
+     * @return void
+     */
+    public function shutdown()
+    {
+        // check if there was a fatal error caused shutdown
+        if ($lastError = error_get_last()) {
+            // initialize type + message
+            $type = 0;
+            $message = '';
+            // extract the last error values
+            extract($lastError);
+            // query whether we've a fatal/user error
+            if ($type === E_ERROR || $type === E_USER_ERROR) {
+                error_log($message);
+            }
+        }
     }
 }
